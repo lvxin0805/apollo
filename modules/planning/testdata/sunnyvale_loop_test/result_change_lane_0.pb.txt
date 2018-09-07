@@ -1,5 +1,5 @@
 header {
-  module_name: "planning"
+  module_name: "std_planning"
 }
 total_path_length: 14.301911685114998
 total_path_time: 6.999999999999992
@@ -1585,3 +1585,4 @@ engage_advice {
   advice: DISALLOW_ENGAGE
   reason: "Not on reference line"
 }
+trajectory_type: NORMAL

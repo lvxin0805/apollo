@@ -21,10 +21,6 @@
 #include "modules/common/configs/config_gflags.h"
 DECLARE_string(perception_adapter_config_filename);
 
-/// lib/config_manager/config_manager.cc
-DECLARE_string(config_manager_path);
-DECLARE_string(work_root);
-
 /// obstacle/base/object.cc
 DECLARE_bool(is_serialize_point_cloud);
 
@@ -43,6 +39,8 @@ DECLARE_string(onboard_type_fuser);
 DECLARE_int32(tf2_buff_in_ms);
 DECLARE_string(lidar_tf2_frame_id);
 DECLARE_string(lidar_tf2_child_frame_id);
+DECLARE_string(camera_tf2_frame_id);
+DECLARE_string(camera_tf2_child_frame_id);
 DECLARE_string(obstacle_module_name);
 DECLARE_bool(enable_visualization);
 
@@ -132,5 +130,9 @@ DECLARE_string(traffic_light_preprocessor_config);
 DECLARE_string(traffic_light_rectifier_config);
 DECLARE_string(traffic_light_reviser_config);
 DECLARE_string(traffic_light_subnode_config);
+DECLARE_double(light_height_adjust);
+DECLARE_string(traffic_light_rectifier);
+DECLARE_string(traffic_light_recognizer);
+DECLARE_string(traffic_light_reviser);
 
 #endif  // MODULES_PERCEPTION_COMMON_PERCEPTION_GFLAGS_H_

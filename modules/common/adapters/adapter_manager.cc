@@ -106,6 +106,9 @@ void AdapterManager::Init(const AdapterManagerConfig &configs) {
       case AdapterConfig::PLANNING_TRAJECTORY:
         EnablePlanning(FLAGS_planning_trajectory_topic, config);
         break;
+      case AdapterConfig::PLANNING_PAD:
+        EnablePlanningPad(FLAGS_planning_pad_topic, config);
+        break;
       case AdapterConfig::PREDICTION:
         EnablePrediction(FLAGS_prediction_topic, config);
         break;
@@ -159,6 +162,12 @@ void AdapterManager::Init(const AdapterManagerConfig &configs) {
         break;
       case AdapterConfig::IMAGE_LONG:
         EnableImageLong(FLAGS_image_long_topic, config);
+        break;
+      case AdapterConfig::CAMERA_IMAGE_LONG:
+        EnableCameraImageLong(FLAGS_camera_image_long_topic, config);
+        break;
+      case AdapterConfig::CAMERA_IMAGE_SHORT:
+        EnableCameraImageShort(FLAGS_camera_image_short_topic, config);
         break;
       case AdapterConfig::DRIVE_EVENT:
         EnableDriveEvent(FLAGS_drive_event_topic, config);

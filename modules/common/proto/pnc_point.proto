@@ -46,6 +46,10 @@ message PathPoint {
   optional double ddkappa = 8;
   // The lane ID where the path point is on
   optional string lane_id = 9;
+
+  // derivative of x and y w.r.t parametric parameter t in CosThetareferenceline
+  optional double x_derivative = 10;
+  optional double y_derivative = 11;
 }
 
 message Path {

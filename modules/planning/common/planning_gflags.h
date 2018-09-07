@@ -26,15 +26,12 @@ DECLARE_string(planning_config_file);
 DECLARE_string(planning_adapter_config_filename);
 DECLARE_string(traffic_rule_config_filename);
 DECLARE_string(smoother_config_filename);
+DECLARE_string(reopt_smoother_config_filename);
 DECLARE_int32(planning_loop_rate);
 DECLARE_bool(enable_collision_detection);
 DECLARE_string(rtk_trajectory_filename);
 DECLARE_uint64(rtk_trajectory_forward);
 DECLARE_double(rtk_trajectory_resolution);
-DECLARE_double(look_backward_distance);
-DECLARE_double(look_forward_short_distance);
-DECLARE_double(look_forward_long_distance);
-DECLARE_double(look_forward_time_sec);
 DECLARE_bool(enable_reference_line_stitching);
 DECLARE_double(look_forward_extend_distance);
 DECLARE_double(reference_line_stitch_overlap_distance);
@@ -131,7 +128,6 @@ DECLARE_double(lag_prediction_protection_distance);
 DECLARE_double(perception_confidence_threshold);
 
 DECLARE_bool(enable_record_debug);
-DECLARE_bool(enable_prediction);
 
 DECLARE_double(turn_signal_distance);
 
@@ -198,8 +194,15 @@ DECLARE_double(bound_buffer);
 DECLARE_double(nudge_buffer);
 
 DECLARE_bool(use_planning_fallback);
+DECLARE_double(fallback_total_time);
+DECLARE_double(fallback_time_unit);
+DECLARE_double(polynomial_speed_fallback_velocity);
 
 // navigation mode
 DECLARE_double(navigation_fallback_cruise_time);
+
+// control whether to stitch last trajectory to current plan trajectory
+DECLARE_bool(enable_stitch_last_trajectory);
+DECLARE_bool(enable_planning_pad_msg);
 
 #endif  // MODULES_PLANNING_COMMON_PLANNING_GFLAGS_H_

@@ -51,7 +51,7 @@ struct CCLanePostProcessorOptions {
   LaneFrameOptions frame;
 
   CCLanePostProcessorOptions()
-      : space_type(SpaceType::VEHICLE),
+      : space_type(SpaceType::VEHICLECOR),
         lane_map_conf_thresh(0.5),
         cc_split_siz(100.0),
         cc_split_len(50) {}
@@ -66,6 +66,10 @@ class CCLanePostProcessor : public BaseCameraLanePostProcessor {
   bool Init() override;
 
   bool Process(const cv::Mat &lane_map,
+               const CameraLanePostProcessOptions &options,
+               LaneObjectsPtr *lane_instances) override;
+
+  bool ProcessWithoutCC(const cv::Mat &lane_map,
                const CameraLanePostProcessOptions &options,
                LaneObjectsPtr *lane_instances) override;
 
@@ -130,6 +134,10 @@ class CCLanePostProcessor : public BaseCameraLanePostProcessor {
   ScalarType max_distance_to_see_ = 500.0;
   int image_width_ = 1080;
   int image_height_ = 1920;
+  int64_t time_1 = 0;
+  int64_t time_2 = 0;
+  int64_t time_3 = 0;
+  int time_num = 0;
 
   cv::Rect roi_;
   int roi_height = 768;

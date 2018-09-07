@@ -179,6 +179,9 @@ void SetStopReason(const StopReasonCode &reason_code, Decision *decision) {
     case StopReasonCode::STOP_REASON_CROSSWALK:
       decision->set_stopreason(Decision::STOP_REASON_CROSSWALK);
       break;
+    case StopReasonCode::STOP_REASON_PULL_OVER:
+      decision->set_stopreason(Decision::STOP_REASON_PULL_OVER);
+      break;
     default:
       AWARN << "Unrecognizable stop reason code:" << reason_code;
   }
@@ -342,8 +345,8 @@ void SimulationWorldService::GetMapElementIds(double radius,
   // Gather required map element ids based on current location.
   apollo::common::PointENU point;
   const auto &adc = world_.auto_driving_car();
-  point.set_x(adc.position_x() + map_service_->GetXOffset());
-  point.set_y(adc.position_y() + map_service_->GetYOffset());
+  point.set_x(adc.position_x());
+  point.set_y(adc.position_y());
   map_service_->CollectMapElementIds(point, radius, ids);
 }
 
@@ -542,8 +545,6 @@ void SimulationWorldService::UpdatePlanningTrajectory(
   const double cutoff_time = world_.auto_driving_car().timestamp_sec();
   const double header_time = trajectory.header().timestamp_sec();
 
-  world_.set_planning_time(header_time);
-
   // Collect trajectory
   util::TrajectoryPointCollector collector(&world_);
 
@@ -597,22 +598,17 @@ void SimulationWorldService::UpdateMainStopDecision(
   } else {
     // Normal stop.
     const apollo::planning::MainStop &stop = main_decision.stop();
-    stop_pt.set_x(stop.stop_point().x());
-    stop_pt.set_y(stop.stop_point().y());
+    stop_pt.set_x(stop.stop_point().x() + map_service_->GetXOffset());
+    stop_pt.set_y(stop.stop_point().y() + map_service_->GetYOffset());
     stop_heading = stop.stop_heading();
     if (stop.has_reason_code()) {
       SetStopReason(stop.reason_code(), decision);
     }
   }
 
-  decision->set_position_x(stop_pt.x() + map_service_->GetXOffset());
-  decision->set_position_y(stop_pt.y() + map_service_->GetYOffset());
+  decision->set_position_x(stop_pt.x());
+  decision->set_position_y(stop_pt.y());
   decision->set_heading(stop_heading);
-
-  world_main_decision->set_position_x(decision->position_x());
-  world_main_decision->set_position_y(decision->position_y());
-  world_main_decision->set_heading(decision->heading());
-  world_main_decision->set_timestamp_sec(update_timestamp_sec);
 }
 
 bool SimulationWorldService::LocateMarker(
@@ -651,8 +647,7 @@ void SimulationWorldService::FindNudgeRegion(
     const Object &world_obj, Decision *world_decision) {
   std::vector<apollo::common::math::Vec2d> points;
   for (auto &polygon_pt : world_obj.polygon_point()) {
-    points.emplace_back(polygon_pt.x() + map_service_->GetXOffset(),
-                        polygon_pt.y() + map_service_->GetYOffset());
+    points.emplace_back(polygon_pt.x(), polygon_pt.y());
   }
   const apollo::common::math::Polygon2d obj_polygon(points);
   const apollo::common::math::Polygon2d &nudge_polygon =
@@ -691,6 +686,14 @@ void SimulationWorldService::UpdateDecision(const DecisionResult &decision_res,
     UpdateMainChangeLaneDecision(main_decision.stop(), world_main_decision);
   } else if (main_decision.has_cruise()) {
     UpdateMainChangeLaneDecision(main_decision.cruise(), world_main_decision);
+  }
+  if (world_main_decision->decision_size() > 0) {
+    // set default position
+    const auto &adc = world_.auto_driving_car();
+    world_main_decision->set_position_x(adc.position_x());
+    world_main_decision->set_position_y(adc.position_y());
+    world_main_decision->set_heading(adc.heading());
+    world_main_decision->set_timestamp_sec(header_time);
   }
 
   // Update obstacle decision.
@@ -839,8 +842,10 @@ void SimulationWorldService::UpdateSimulationWorld(
 
   UpdatePlanningData(trajectory.debug().planning_data());
 
-  world_.mutable_latency()->set_planning(
-      trajectory.latency_stats().total_time_ms());
+  Latency latency;
+  latency.set_timestamp_sec(header_time);
+  latency.set_total_time_ms(trajectory.latency_stats().total_time_ms());
+  (*world_.mutable_latency())["planning"] = latency;
 }
 
 void SimulationWorldService::CreatePredictionTrajectory(
@@ -968,7 +973,13 @@ template <>
 void SimulationWorldService::UpdateSimulationWorld(
     const ControlCommand &control_command) {
   auto *control_data = world_.mutable_control_data();
-  control_data->set_timestamp_sec(control_command.header().timestamp_sec());
+  const double header_time = control_command.header().timestamp_sec();
+  control_data->set_timestamp_sec(header_time);
+
+  Latency latency;
+  latency.set_timestamp_sec(header_time);
+  latency.set_total_time_ms(control_command.latency_stats().total_time_ms());
+  (*world_.mutable_latency())["control"] = latency;
 
   if (control_command.has_debug()) {
     auto &debug = control_command.debug();

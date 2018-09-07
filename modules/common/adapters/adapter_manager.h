@@ -253,6 +253,7 @@ class AdapterManager {
   REGISTER_ADAPTER(Pad);
   REGISTER_ADAPTER(PerceptionObstacles);
   REGISTER_ADAPTER(Planning);
+  REGISTER_ADAPTER(PlanningPad);
   REGISTER_ADAPTER(PointCloud);
   REGISTER_ADAPTER(VLP16PointCloud);
 
@@ -276,6 +277,8 @@ class AdapterManager {
   REGISTER_ADAPTER(ImageFront);
   REGISTER_ADAPTER(ImageShort);
   REGISTER_ADAPTER(ImageLong);
+  REGISTER_ADAPTER(CameraImageLong);
+  REGISTER_ADAPTER(CameraImageShort);
   REGISTER_ADAPTER(Prediction);
   REGISTER_ADAPTER(TrafficLightDetection);
   REGISTER_ADAPTER(RoutingRequest);

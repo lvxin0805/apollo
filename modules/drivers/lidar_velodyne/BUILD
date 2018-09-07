@@ -17,14 +17,17 @@ cc_library(
     deps = [
         "//modules/common",
         "//modules/common:apollo_app",
+        "//modules/common:log",
+        "//modules/common/adapters:adapter",
         "//modules/common/adapters:adapter_manager",
         "//modules/common/monitor_log",
+        "//modules/common/proto:error_code_proto",
+        "//modules/common/status",
         "//modules/common/time",
         "//modules/common/util",
-        "//modules/drivers/lidar_velodyne/common:velodyne_common",
-        "//modules/drivers/lidar_velodyne/driver:velodyne_driver",
-        "//modules/drivers/lidar_velodyne/pointcloud:velodyne_pointcloud",
-        "//modules/drivers/lidar_velodyne/proto:velodyne_proto",
+        "//modules/drivers/lidar_velodyne/common:velodyne_gflags",
+        "//modules/drivers/lidar_velodyne/driver",
+        "//modules/drivers/lidar_velodyne/pointcloud",
         "@pcl",
         "@ros//:ros_common",
     ],
@@ -32,13 +35,12 @@ cc_library(
 
 cc_binary(
     name = "lidar_velodyne",
-    srcs = ["main.cc"],
+    srcs = [
+        "main.cc",
+    ],
     deps = [
         ":velodyne_lib",
         "//external:gflags",
-        "//modules/common",
-        "//modules/common/monitor_log",
-        "@ros//:ros_common",
     ],
 )
 

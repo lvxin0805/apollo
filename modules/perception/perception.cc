@@ -34,8 +34,9 @@
 #include "modules/perception/obstacle/onboard/motion_service.h"
 #include "modules/perception/obstacle/onboard/object_shared_data.h"
 #include "modules/perception/obstacle/onboard/radar_process_subnode.h"
-#include "modules/perception/obstacle/onboard/visualization_subnode.h"
+#include "modules/perception/obstacle/onboard/scene_shared_data.h"
 #include "modules/perception/obstacle/onboard/ultrasonic_obstacle_subnode.h"
+#include "modules/perception/obstacle/onboard/visualization_subnode.h"
 #include "modules/perception/traffic_light/onboard/tl_preprocessor_subnode.h"
 #include "modules/perception/traffic_light/onboard/tl_proc_subnode.h"
 
@@ -52,12 +53,9 @@ Status Perception::Init() {
   AdapterManager::Init(FLAGS_perception_adapter_config_filename);
 
   RegistAllOnboardClass();
-  const std::string dag_config_path = apollo::common::util::GetAbsolutePath(
-      FLAGS_work_root, FLAGS_dag_config_path);
-
-  if (!dag_streaming_.Init(dag_config_path)) {
-    AERROR << "failed to Init DAGStreaming. dag_config_path:"
-           << dag_config_path;
+  if (!dag_streaming_.Init(FLAGS_dag_config_path)) {
+    AERROR << "Failed to init DAGStreaming. dag_config_path:"
+           << FLAGS_dag_config_path;
     return Status(ErrorCode::PERCEPTION_ERROR, "failed to Init DAGStreaming.");
   }
   callback_thread_num_ = 5;
@@ -74,6 +72,7 @@ void Perception::RegistAllOnboardClass() {
   RegisterFactoryCIPVObjectData();
   RegisterFactoryLaneSharedData();
   RegisterFactoryFusionSharedData();
+  RegisterFactorySceneSharedData();
   traffic_light::RegisterFactoryTLPreprocessingData();
 
   /// register subnode

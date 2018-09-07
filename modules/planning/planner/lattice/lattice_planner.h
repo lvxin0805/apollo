@@ -21,6 +21,7 @@
 #ifndef MODULES_PLANNING_PLANNER_LATTICE_LATTICE_PLANNER_H_
 #define MODULES_PLANNING_PLANNER_LATTICE_LATTICE_PLANNER_H_
 
+#include <string>
 #include <vector>
 
 #include "modules/common/status/status.h"
@@ -32,11 +33,13 @@
 namespace apollo {
 namespace planning {
 
-class LatticePlanner : public Planner {
+class LatticePlanner : public PlannerWithReferenceLine {
  public:
   LatticePlanner() = default;
 
   virtual ~LatticePlanner() = default;
+
+  std::string Name() override { return "LATTICE"; }
 
   common::Status Init(const PlanningConfig& config) override {
     return common::Status::OK();

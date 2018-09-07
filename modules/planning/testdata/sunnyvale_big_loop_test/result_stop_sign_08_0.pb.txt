@@ -1,5 +1,5 @@
 header {
-  module_name: "planning"
+  module_name: "std_planning"
 }
 is_replan: true
 gear: GEAR_DRIVE
@@ -80,3 +80,4 @@ lane_id {
 engage_advice {
   advice: KEEP_ENGAGED
 }
+trajectory_type: NORMAL

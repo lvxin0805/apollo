@@ -1,5 +1,5 @@
 header {
-  module_name: "planning"
+  module_name: "std_planning"
 }
 total_path_length: 31.277473425223825
 total_path_time: 6.999999999999992
@@ -1623,3 +1623,4 @@ lane_id {
 engage_advice {
   advice: KEEP_ENGAGED
 }
+trajectory_type: NORMAL

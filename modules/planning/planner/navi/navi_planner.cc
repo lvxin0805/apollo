@@ -36,6 +36,7 @@
 #include "modules/common/vehicle_state/vehicle_state_provider.h"
 #include "modules/map/hdmap/hdmap.h"
 #include "modules/map/hdmap/hdmap_common.h"
+#include "modules/planning/common/ego_info.h"
 #include "modules/planning/common/frame.h"
 #include "modules/planning/common/planning_gflags.h"
 #include "modules/planning/constraint_checker/constraint_checker.h"
@@ -60,6 +61,7 @@ using common::math::Vec2d;
 using common::time::Clock;
 
 namespace {
+constexpr uint32_t KDestLanePriority = 0;
 constexpr double kPathOptimizationFallbackClost = 2e4;
 constexpr double kSpeedOptimizationFallbackClost = 2e4;
 constexpr double kStraightForwardLineCost = 10.0;
@@ -86,7 +88,7 @@ Status NaviPlanner::Init(const PlanningConfig& config) {
 
   AINFO << "In NaviPlanner::Init()";
   RegisterTasks();
-  for (const auto task : config.navi_planner_config().task()) {
+  for (const auto task : config.planner_navi_config().task()) {
     tasks_.emplace_back(
         task_factory_.CreateObject(static_cast<TaskType>(task)));
     AINFO << "Created task:" << tasks_.back()->Name();
@@ -113,12 +115,11 @@ Status NaviPlanner::Plan(const TrajectoryPoint& planning_init_point,
   }
 
   std::size_t success_line_count = 0;
-  bool disable_low_priority_path = false;
   for (auto& reference_line_info : frame->reference_line_info()) {
-    if (disable_low_priority_path) {
+    uint32_t priority = reference_line_info.GetPriority();
+    reference_line_info.SetCost(priority * kStraightForwardLineCost);
+    if (priority != KDestLanePriority) {
       reference_line_info.SetDrivable(false);
-    }
-    if (!reference_line_info.IsDrivable()) {
       continue;
     }
     auto status =
@@ -126,27 +127,21 @@ Status NaviPlanner::Plan(const TrajectoryPoint& planning_init_point,
 
     if (status.ok() && reference_line_info.IsDrivable()) {
       success_line_count += 1;
-      if (FLAGS_prioritize_change_lane &&
-          reference_line_info.IsChangeLanePath() &&
-          reference_line_info.IsNeighborLanePath() &&
-          reference_line_info.Cost() < kStraightForwardLineCost) {
-        disable_low_priority_path = true;
-      }
     } else {
       reference_line_info.SetDrivable(false);
-      if (reference_line_info.IsChangeLanePath() &&
-          reference_line_info.IsNeighborLanePath()) {
-        AERROR << "Planner failed to change lane to "
-               << reference_line_info.Lanes().Id();
-      } else {
-        AERROR << "Planner failed to " << reference_line_info.Lanes().Id();
-      }
+      AERROR << "Failed to plan on reference line  "
+             << reference_line_info.Lanes().Id();
     }
+    ADEBUG << "ref line info: " << reference_line_info.Lanes().Id()
+           << " priority : " << reference_line_info.GetPriority()
+           << " cost : " << reference_line_info.Cost()
+           << " driveable : " << reference_line_info.IsDrivable();
   }
 
   if (success_line_count > 0) {
     return Status::OK();
   }
+
   return Status(ErrorCode::PLANNING_ERROR,
                 "Failed to plan on any reference line.");
 }
@@ -199,8 +194,7 @@ Status NaviPlanner::PlanOnReferenceLine(
 
   if (!ret.ok() || reference_line_info->speed_data().Empty()) {
     ADEBUG << "Speed fallback.";
-    GenerateFallbackSpeedProfile(reference_line_info,
-                                 reference_line_info->mutable_speed_data());
+    GenerateFallbackSpeedProfile(reference_line_info->mutable_speed_data());
     reference_line_info->AddCost(kSpeedOptimizationFallbackClost);
   }
 
@@ -376,14 +370,14 @@ std::vector<SpeedPoint> NaviPlanner::GenerateSpeedHotStart(
 
 void NaviPlanner::GenerateFallbackPathProfile(
     const ReferenceLineInfo* reference_line_info, PathData* path_data) {
-  auto adc_point = reference_line_info->AdcPlanningPoint();
+  auto adc_point = EgoInfo::instance()->start_point();
   double adc_s = reference_line_info->AdcSlBoundary().end_s();
   const double max_s = 150.0;
   const double unit_s = 1.0;
 
   // projection of adc point onto reference line
   const auto& adc_ref_point =
-      reference_line_info->reference_line().GetReferencePoint(adc_s);
+      reference_line_info->reference_line().GetReferencePoint(0.5 * adc_s);
 
   DCHECK(adc_point.has_path_point());
   const double dx = adc_point.path_point().x() - adc_ref_point.x();
@@ -392,7 +386,7 @@ void NaviPlanner::GenerateFallbackPathProfile(
   std::vector<common::PathPoint> path_points;
   for (double s = adc_s; s < max_s; s += unit_s) {
     const auto& ref_point =
-        reference_line_info->reference_line().GetReferencePoint(adc_s);
+        reference_line_info->reference_line().GetReferencePoint(s);
     common::PathPoint path_point = common::util::MakePathPoint(
         ref_point.x() + dx, ref_point.y() + dy, 0.0, ref_point.heading(),
         ref_point.kappa(), ref_point.dkappa(), 0.0);
@@ -404,16 +398,12 @@ void NaviPlanner::GenerateFallbackPathProfile(
   path_data->SetDiscretizedPath(DiscretizedPath(std::move(path_points)));
 }
 
-void NaviPlanner::GenerateFallbackSpeedProfile(
-    const ReferenceLineInfo* reference_line_info, SpeedData* speed_data) {
-  *speed_data = GenerateStopProfileFromPolynomial(
-      reference_line_info->AdcPlanningPoint().v(),
-      reference_line_info->AdcPlanningPoint().a());
-
+void NaviPlanner::GenerateFallbackSpeedProfile(SpeedData* speed_data) {
+  const auto& start_point = EgoInfo::instance()->start_point();
+  *speed_data =
+      GenerateStopProfileFromPolynomial(start_point.v(), start_point.a());
   if (speed_data->Empty()) {
-    *speed_data =
-        GenerateStopProfile(reference_line_info->AdcPlanningPoint().v(),
-                            reference_line_info->AdcPlanningPoint().a());
+    *speed_data = GenerateStopProfile(start_point.v(), start_point.a());
   }
 }
 
